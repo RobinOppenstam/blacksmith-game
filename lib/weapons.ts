@@ -57,7 +57,20 @@ export const getRarityColor = (rarity: Rarity): string => {
 };
 
 export const getRarityName = (rarity: Rarity): string => {
-  return Object.keys(Rarity)[rarity] || 'COMMON';
+  switch (rarity) {
+    case Rarity.COMMON:
+      return 'Common';
+    case Rarity.UNCOMMON:
+      return 'Uncommon';
+    case Rarity.RARE:
+      return 'Rare';
+    case Rarity.EPIC:
+      return 'Epic';
+    case Rarity.LEGENDARY:
+      return 'Legendary';
+    default:
+      return 'Common';
+  }
 };
 
 export const getWeaponTypeName = (type: WeaponType): string => {

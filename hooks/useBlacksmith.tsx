@@ -1,5 +1,5 @@
 import React from 'react';
-import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { BLACKSMITH_CONTRACT_ADDRESS, BLACKSMITH_ABI } from '@/lib/contracts';
 import { parseEther } from 'viem';
 import { WeaponType } from '@/types/game';
@@ -9,6 +9,7 @@ import { WEAPON_DEFINITIONS } from '@/lib/weapons';
 
 export function useBlacksmith() {
   const { refetchPlayer } = useGame();
+  const { address } = useAccount(); // Get wallet address
   const { 
     writeContract, 
     data: hash, 
@@ -138,7 +139,7 @@ export function useBlacksmith() {
         Math.max(1, estimatedDurability), 
         Math.max(1, estimatedSpeed),
         tempTokenId,
-        'TBD', // Will be updated after minting
+        address || 'Unknown', // Use actual wallet address
         imageIpfsHash
       );
 

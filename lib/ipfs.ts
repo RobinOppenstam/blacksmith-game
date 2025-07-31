@@ -50,12 +50,12 @@ export function generateWeaponMetadata(
 
   // Use provided image hash or generate placeholder URL
   const imageUrl = imageIpfsHash 
-    ? `${process.env.NEXT_PUBLIC_IPFS_GATEWAY}${imageIpfsHash}`
+    ? `https://gateway.pinata.cloud/ipfs/${imageIpfsHash}`
     : generateImageUrl(weaponType, tier, rarity);
 
   return {
     name: `${weaponDef.name} #${tokenId}`,
-    description: `${weaponDef.description}\n\nThis ${rarityName.toLowerCase()} ${weaponTypeName.toLowerCase()} was masterfully forged by a skilled blacksmith on the Avalanche blockchain. Each weapon is unique with randomized stats and exists as a verifiable NFT.\n\nForged by: ${craftedBy.slice(0, 6)}...${craftedBy.slice(-4)}`,
+    description: `${weaponDef.description}\n\nThis ${rarityName.toLowerCase()} ${weaponTypeName.toLowerCase()} was masterfully forged by a skilled blacksmith on the Avalanche blockchain. Each weapon is unique with randomized stats and exists as a verifiable NFT.\n\nForged by: ${craftedBy === 'TBD' ? 'Blacksmith' : `${craftedBy.slice(0, 6)}...${craftedBy.slice(-4)}`}`,
     image: imageUrl,
     external_url: `${typeof window !== 'undefined' ? window.location.origin : 'https://blacksmith-forge.com'}/weapon/${tokenId}`,
     background_color: rarityColors[rarity],
