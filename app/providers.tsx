@@ -6,10 +6,19 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { wagmiConfig } from '@/lib/wagmi';
 import { GameProvider } from '@/contexts/GameContext';
-
-const queryClient = new QueryClient();
+import { useState } from 'react';
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  // Create QueryClient inside the component to avoid SSR issues
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60 * 1000, // 1 minute
+        retry: 1,
+      },
+    },
+  }));
+
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>

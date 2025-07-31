@@ -3,8 +3,8 @@
 import { Header } from '@/components/Header';
 import { ConnectWallet } from '@/components/ConnectWallet';
 import { PlayerStats } from '@/components/PlayerStats';
-import { Forge } from '../components/Forge';
-import { Inventory } from '../components/Inventory';
+import { Forge } from '@/components/Forge';
+import { Inventory } from '@/components/Inventory';
 import { useAccount } from 'wagmi';
 import { motion } from 'framer-motion';
 
