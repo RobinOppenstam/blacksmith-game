@@ -1,0 +1,181 @@
+@import "tailwindcss";
+
+@layer base {
+  * {
+    border-color: rgb(55 65 81);
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    background: linear-gradient(135deg, rgb(17 24 39), rgb(31 41 55), rgb(0 0 0));
+    color: rgb(255 255 255);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .forge-glow {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .forge-glow:hover {
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.5);
+  }
+  
+  .weapon-card {
+    background: rgba(31, 41, 55, 0.5);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgb(55 65 81);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: all 0.3s ease;
+    transform: scale(1);
+  }
+  
+  .weapon-card:hover {
+    border-color: rgba(245, 158, 11, 0.5);
+    transform: scale(1.02);
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+  }
+  
+  .btn-primary {
+    background: linear-gradient(to right, rgb(217 119 6), rgb(180 83 9));
+    color: rgb(255 255 255);
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+    transform: scale(1);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+  
+  .btn-primary:hover {
+    background: linear-gradient(to right, rgb(180 83 9), rgb(146 64 14));
+    transform: scale(1.05);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+  
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: scale(1);
+  }
+  
+  .btn-secondary {
+    background: rgb(55 65 81);
+    color: rgb(255 255 255);
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(75 85 99);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  
+  .btn-secondary:hover {
+    background: rgb(75 85 99);
+    border-color: rgb(107 114 128);
+  }
+  
+  .stat-bar {
+    background: rgb(55 65 81);
+    border-radius: 9999px;
+    height: 0.5rem;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .stat-fill {
+    height: 100%;
+    background: linear-gradient(to right, rgb(245 158 11), rgb(217 119 6));
+    transition: all 0.5s ease-out;
+    position: relative;
+  }
+  
+  .stat-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.2), transparent);
+    animation: pulse 2s infinite;
+  }
+  
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  }
+  
+  .gradient-text {
+    background: linear-gradient(to right, rgb(251 191 36), rgb(245 158 11), rgb(217 119 6));
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+@layer utilities {
+  .animation-delay-75 {
+    animation-delay: 75ms;
+  }
+  
+  .animation-delay-150 {
+    animation-delay: 150ms;
+  }
+  
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+}
+
+/* Custom animations */
+@keyframes forge-pulse {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(245, 158, 11, 0.6);
+  }
+}
+
+@keyframes weapon-hover {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.05) rotate(1deg);
+  }
+  100% {
+    transform: scale(1.02) rotate(0deg);
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-forge-pulse {
+  animation: forge-pulse 2s ease-in-out infinite;
+}
+
+.animate-weapon-hover {
+  animation: weapon-hover 0.3s ease-in-out;
+}
+
+.animate-sparkle {
+  animation: sparkle 1.5s ease-in-out infinite;
+}
