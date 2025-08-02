@@ -5,18 +5,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { type Weapon, WeaponType, Rarity } from '@/types/game';
 import { getWeaponTypeName, getRarityName, getRarityColor } from '@/lib/weapons';
 import { getIPFSUrl } from '@/lib/ipfs';
-import { Sword, Target, Zap, ExternalLink, Calendar, TrendingUp, Eye } from 'lucide-react';
+import { ExternalLink, Calendar, TrendingUp, Eye } from 'lucide-react';
+import { WeaponIcon, getWeaponIconSVG } from './WeaponIcons';
 import { clsx } from 'clsx';
 import Image from 'next/image';
 
 interface CollectionGridProps {
-  weapons: Weapon[];
+  weapons: (Weapon & { imageUrl?: string; metadata?: any })[];
   isLoading: boolean;
   viewMode: 'grid' | 'list';
+  error?: string | null;
+  failedCount?: number;
 }
 
 interface WeaponModalProps {
-  weapon: Weapon;
+  weapon: Weapon & { imageUrl?: string; metadata?: any };
   isOpen: boolean;
   onClose: () => void;
 }
@@ -27,6 +30,7 @@ function WeaponModal({ weapon, isOpen, onClose }: WeaponModalProps) {
   const weaponTypeName = getWeaponTypeName(weapon.weaponType);
   const rarityName = getRarityName(weapon.rarity);
   const rarityColor = getRarityColor(weapon.rarity);
+  const weaponWithImage = weapon as Weapon & { imageUrl?: string; metadata?: any };
 
   return (
     <AnimatePresence>
@@ -45,25 +49,35 @@ function WeaponModal({ weapon, isOpen, onClose }: WeaponModalProps) {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="text-center mb-6">
-            <div className="relative w-48 h-48 mx-auto mb-4 rounded-lg overflow-hidden">
-              <Image
-                src="/api/placeholder/400/400" // You'll replace this with actual IPFS image
-                alt={`${weaponTypeName} #${weapon.tokenId}`}
-                fill
-                className="object-cover"
-                onError={(e) => {
-                  // Fallback to generated placeholder
-                  const target = e.target as HTMLImageElement;
-                  target.src = `data:image/svg+xml,${encodeURIComponent(`
-                    <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="400" height="400" fill="#374151"/>
-                      <text x="200" y="200" text-anchor="middle" fill="#9CA3AF" font-size="16" font-family="Arial">
-                        ${weaponTypeName} #${weapon.tokenId}
-                      </text>
-                    </svg>
-                  `)}`;
-                }}
-              />
+            <div className="relative w-48 h-48 mx-auto mb-4 rounded-lg overflow-hidden bg-gray-700">
+              {weaponWithImage.imageUrl ? (
+                <Image
+                  src={weaponWithImage.imageUrl}
+                  alt={`${weaponTypeName} #${weapon.tokenId}`}
+                  fill
+                  className="object-cover"
+                  onError={(e) => {
+                    // Fallback to generated placeholder
+                    const target = e.target as HTMLImageElement;
+                    target.src = `data:image/svg+xml,${encodeURIComponent(`
+                      <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="400" height="400" fill="#374151"/>
+                        <text x="200" y="180" text-anchor="middle" fill="#9CA3AF" font-size="24" font-family="Arial">
+                          ${weaponTypeName}
+                        </text>
+                        <text x="200" y="220" text-anchor="middle" fill="#6B7280" font-size="16" font-family="Arial">
+                          #${weapon.tokenId}
+                        </text>
+                      </svg>
+                    `)}`;
+                  }}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                  <div className="text-4xl mb-2">⚔️</div>
+                  <span className="text-sm">{weaponTypeName} #{weapon.tokenId}</span>
+                </div>
+              )}
             </div>
             
             <h3 className="text-xl font-bold text-white mb-2">
@@ -124,14 +138,7 @@ function WeaponModal({ weapon, isOpen, onClose }: WeaponModalProps) {
   );
 }
 
-function WeaponCard({ weapon, onClick }: { weapon: Weapon; onClick: () => void }) {
-  const weaponIcons = {
-    [WeaponType.SWORD]: Sword,
-    [WeaponType.BOW]: Target,
-    [WeaponType.AXE]: Zap,
-  };
-
-  const IconComponent = weaponIcons[weapon.weaponType];
+function WeaponCard({ weapon, onClick }: { weapon: Weapon & { imageUrl?: string; metadata?: any }; onClick: () => void }) {
   const weaponTypeName = getWeaponTypeName(weapon.weaponType);
   const rarityName = getRarityName(weapon.rarity);
   const rarityColor = getRarityColor(weapon.rarity);
@@ -155,40 +162,47 @@ function WeaponCard({ weapon, onClick }: { weapon: Weapon; onClick: () => void }
         <Eye className="h-8 w-8 text-white" />
       </div>
 
-      {/* Weapon image placeholder */}
-      <div className="w-full h-48 bg-gray-700 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-        <Image
-          src="/api/placeholder/300/300" // Replace with actual IPFS image URL
-          alt={`${weaponTypeName} #${weapon.tokenId}`}
-          width={300}
-          height={300}
-          className="object-cover w-full h-full"
-          onError={(e) => {
-            // Fallback to icon display
-            const target = e.target as HTMLImageElement;
-            target.style.display = 'none';
-            const parent = target.parentElement;
-            if (parent) {
-              parent.innerHTML = `
-                <div class="flex flex-col items-center justify-center h-full text-gray-400">
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
-                    ${weapon.weaponType === WeaponType.SWORD ? '<path d="M6.92 5H5l9-3.76L23 5h-1.92L12 15L6.92 5z"/>' :
-                      weapon.weaponType === WeaponType.BOW ? '<path d="M4 8L2 12l2 4c4-2 8-2 12 0l2-4-2-4c-4 2-8 2-12 0z"/>' :
-                      '<path d="M12 2L8 8h8l-4-6z M8 8v8l4-4 4 4V8H8z"/>'}
+      {/* Weapon image */}
+      <div className="w-full h-48 bg-gray-700 rounded-lg mb-4 flex items-center justify-center overflow-hidden relative">
+        {weapon.imageUrl ? (
+          <Image
+            src={weapon.imageUrl}
+            alt={`${weaponTypeName} #${weapon.tokenId}`}
+            width={300}
+            height={300}
+            className="object-cover w-full h-full"
+            onError={(e) => {
+              // Fallback to icon display on error
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              const parent = target.parentElement;
+              if (parent && !parent.querySelector('.fallback-icon')) {
+                const fallbackDiv = document.createElement('div');
+                fallbackDiv.className = 'fallback-icon flex flex-col items-center justify-center h-full text-gray-400';
+                fallbackDiv.innerHTML = `
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" class="mb-2">
+                    ${getWeaponIconSVG(weapon.weaponType)}
                   </svg>
-                  <span class="text-xs mt-2">${weaponTypeName}</span>
-                </div>
-              `;
-            }
-          }}
-        />
+                  <span class="text-xs">${weaponTypeName} #${weapon.tokenId}</span>
+                `;
+                parent.appendChild(fallbackDiv);
+              }
+            }}
+          />
+        ) : (
+          // Show icon while loading or if no image
+          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+            <WeaponIcon weaponType={weapon.weaponType} className="h-12 w-12 mb-2" />
+            <span className="text-xs">{weaponTypeName} #${weapon.tokenId}</span>
+          </div>
+        )}
       </div>
 
       {/* Weapon info */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <IconComponent className="h-5 w-5 text-gray-300" />
+            <WeaponIcon weaponType={weapon.weaponType} className="h-5 w-5 text-gray-300" />
             <span className="font-medium text-white">#{weapon.tokenId}</span>
           </div>
           <span className={clsx('text-xs px-2 py-1 rounded-full border', rarityColor)}>
@@ -234,27 +248,53 @@ function WeaponCard({ weapon, onClick }: { weapon: Weapon; onClick: () => void }
   );
 }
 
-export function CollectionGrid({ weapons, isLoading, viewMode }: CollectionGridProps) {
+export function CollectionGrid({ weapons, isLoading, viewMode, error, failedCount }: CollectionGridProps) {
   const [selectedWeapon, setSelectedWeapon] = useState<Weapon | null>(null);
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="weapon-card animate-pulse">
-            <div className="w-full h-48 bg-gray-700 rounded-lg mb-4" />
-            <div className="space-y-3">
-              <div className="h-4 bg-gray-700 rounded" />
-              <div className="h-3 bg-gray-700 rounded w-3/4" />
-              <div className="grid grid-cols-3 gap-2">
-                <div className="h-8 bg-gray-700 rounded" />
-                <div className="h-8 bg-gray-700 rounded" />
-                <div className="h-8 bg-gray-700 rounded" />
+      <div className="space-y-4">
+        <div className="text-center text-gray-400 text-sm">
+          Loading your weapons...
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="weapon-card animate-pulse">
+              <div className="w-full h-48 bg-gray-700 rounded-lg mb-4" />
+              <div className="space-y-3">
+                <div className="h-4 bg-gray-700 rounded" />
+                <div className="h-3 bg-gray-700 rounded w-3/4" />
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="h-8 bg-gray-700 rounded" />
+                  <div className="h-8 bg-gray-700 rounded" />
+                  <div className="h-8 bg-gray-700 rounded" />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
+    );
+  }
+
+  // Show error state if there's an error and no weapons
+  if (error && weapons.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-center py-16"
+      >
+        <div className="text-red-400 text-4xl mb-4">⚠️</div>
+        <h3 className="text-xl font-semibold text-white mb-2">Failed to Load Weapons</h3>
+        <p className="text-gray-400 mb-6">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="btn-primary"
+        >
+          Try Again
+        </button>
+      </motion.div>
     );
   }
 
@@ -265,7 +305,7 @@ export function CollectionGrid({ weapons, isLoading, viewMode }: CollectionGridP
         animate={{ opacity: 1 }}
         className="text-center py-16"
       >
-        <Sword className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+        <WeaponIcon weaponType={WeaponType.SWORD} className="h-16 w-16 text-gray-600 mx-auto mb-4" />
         <h3 className="text-xl font-semibold text-white mb-2">No Weapons Found</h3>
         <p className="text-gray-400 mb-6">
           No weapons match your current filters. Try adjusting your search criteria.
@@ -279,6 +319,20 @@ export function CollectionGrid({ weapons, isLoading, viewMode }: CollectionGridP
 
   return (
     <>
+      {/* Warning banner for partial failures */}
+      {error && weapons.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 p-4 bg-yellow-900/50 border border-yellow-600/50 rounded-lg"
+        >
+          <div className="flex items-center text-yellow-400 text-sm">
+            <div className="text-yellow-400 mr-2">⚠️</div>
+            <span>{error}</span>
+          </div>
+        </motion.div>
+      )}
+
       <div className={clsx(
         'grid gap-6',
         viewMode === 'grid' 

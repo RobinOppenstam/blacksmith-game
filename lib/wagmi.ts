@@ -14,6 +14,7 @@ export const wagmiConfig = getDefaultConfig({
       ? http(`https://avax-fuji.g.alchemy.com/v2/${process.env.NEXT_PUBLIC_ALCHEMY_API_KEY}`)
       : http(),
   },
+  ssr: true, // Enable SSR support
 });
 
 export const chains = [avalanche, avalancheFuji] as const;

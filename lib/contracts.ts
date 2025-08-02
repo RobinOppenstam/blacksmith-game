@@ -5,13 +5,6 @@ export const BLACKSMITH_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDR
 // ABI for our smart contract functions
 export const BLACKSMITH_ABI = [
   {
-    "inputs": [],
-    "name": "registerPlayer",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [
       {"internalType": "uint8", "name": "_weaponType", "type": "uint8"},
       {"internalType": "uint8", "name": "_tier", "type": "uint8"},
@@ -81,6 +74,20 @@ export const BLACKSMITH_ABI = [
     ],
     "name": "canCraftTier",
     "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "_player", "type": "address"}],
+    "name": "estimateForgeGas",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MINTING_FEE",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
     "stateMutability": "view",
     "type": "function"
   }

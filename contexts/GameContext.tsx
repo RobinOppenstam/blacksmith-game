@@ -100,8 +100,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           isRegistered: playerData.isRegistered,
         }
       });
+    } else if (playerError) {
+      // If there's an error fetching player data, assume not registered
+      dispatch({ 
+        type: 'SET_PLAYER', 
+        payload: {
+          level: 0,
+          experience: 0,
+          swordsCrafted: 0,
+          bowsCrafted: 0,
+          axesCrafted: 0,
+          isRegistered: false,
+        }
+      });
     }
-  }, [playerData]);
+  }, [playerData, playerError]);
 
   useEffect(() => {
     if (!isConnected) {

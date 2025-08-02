@@ -11,8 +11,6 @@ export const metadata: Metadata = {
   description: 'Forge legendary weapons as NFTs on Avalanche C-Chain',
   keywords: ['NFT', 'Game', 'Blacksmith', 'Avalanche', 'Web3', 'Blockchain'],
   authors: [{ name: 'Blacksmith Forge Team' }],
-  viewport: 'width=device-width, initial-scale=1',
-  themeColor: '#f59e0b',
   openGraph: {
     title: 'Blacksmith Forge',
     description: 'Craft legendary weapons as NFTs',
@@ -20,6 +18,14 @@ export const metadata: Metadata = {
     images: ['/og-image.png']
   }
 };
+
+export function generateViewport() {
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    themeColor: '#f59e0b',
+  }
+}
 
 export default function RootLayout({
   children,

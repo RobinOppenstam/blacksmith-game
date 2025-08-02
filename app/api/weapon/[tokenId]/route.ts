@@ -26,19 +26,31 @@ export async function GET(
 
     // Fetch metadata from IPFS
     let metadata = null;
-    if (weaponData.ipfsHash && weaponData.ipfsHash !== '') {
+    if (weaponData.ipfsHash && weaponData.ipfsHash !== '' && !weaponData.ipfsHash.startsWith('temp_') && !weaponData.ipfsHash.startsWith('fallback_')) {
       try {
-        const metadataUrl = weaponData.ipfsHash.startsWith('ipfs://') 
-          ? weaponData.ipfsHash.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
-          : `https://gateway.pinata.cloud/ipfs/${weaponData.ipfsHash}`;
+        const { fetchFromIPFS } = await import('@/lib/ipfs');
         
-        const metadataResponse = await fetch(metadataUrl);
+        console.log(`Fetching metadata for token ${tokenId} from IPFS hash: ${weaponData.ipfsHash}`);
+        
+        const metadataResponse = await fetchFromIPFS(weaponData.ipfsHash, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+        });
+
         if (metadataResponse.ok) {
           metadata = await metadataResponse.json();
+          console.log(`Successfully fetched metadata for token ${tokenId}:`, metadata);
+        } else {
+          console.warn(`Failed to fetch metadata for token ${tokenId}:`, metadataResponse.status, metadataResponse.statusText);
         }
       } catch (error) {
-        console.warn('Failed to fetch metadata from IPFS:', error);
+        console.warn(`Failed to fetch metadata from IPFS for token ${tokenId}:`, error);
       }
+    } else {
+      console.log(`Skipping metadata fetch for token ${tokenId} - invalid hash: ${weaponData.ipfsHash}`);
     }
 
     const weapon = {

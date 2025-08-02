@@ -2,17 +2,37 @@
 'use client';
 
 import { useAccount } from 'wagmi';
+
+// Disable static generation for this page
+export const dynamic = 'force-dynamic';
 import { Header } from '@/components/Header';
 import { PlayerStats } from '@/components/PlayerStats';
 import { useGame } from '@/contexts/GameContext';
 import { motion } from 'framer-motion';
 import { User, Trophy, Calendar, ExternalLink, Copy, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function ProfilePage() {
+  const [mounted, setMounted] = useState(false);
   const { address, isConnected } = useAccount();
   const { state } = useGame();
   const [copied, setCopied] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render wagmi-dependent content until mounted
+  if (!mounted) {
+    return (
+      <main className="min-h-screen">
+        <Header />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto"></div>
+        </div>
+      </main>
+    );
+  }
 
   const copyAddress = async () => {
     if (address) {

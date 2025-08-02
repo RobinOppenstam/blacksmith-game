@@ -113,10 +113,10 @@ function drawWeapon(ctx: CanvasRenderingContext2D, width: number, height: number
       drawSword(ctx, centerX, centerY, scale, config.tier);
       break;
     case WeaponType.BOW:
-      drawBow(ctx, centerX, centerY, scale, config.tier);
+      drawBow(ctx, centerX, centerY, scale, config.tier, weaponColor);
       break;
     case WeaponType.AXE:
-      drawAxe(ctx, centerX, centerY, scale, config.tier);
+      drawAxe(ctx, centerX, centerY, scale, config.tier, weaponColor);
       break;
   }
 }
@@ -156,61 +156,137 @@ function drawSword(ctx: CanvasRenderingContext2D, x: number, y: number, scale: n
 }
 
 /**
- * Draw bow shape
+ * Draw bow shape - FIXED
  */
-function drawBow(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, tier: number) {
+function drawBow(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, tier: number, weaponColor: string) {
   const size = 100 * scale * (1 + tier * 0.08);
   
   ctx.save();
   ctx.translate(x, y);
   
-  // Bow arc
-  ctx.beginPath();
-  ctx.arc(0, 0, size, Math.PI * 0.2, Math.PI * 0.8, false);
+  // Bow body - draw as curved wood
+  ctx.strokeStyle = '#8B4513';
+  ctx.fillStyle = '#8B4513';
   ctx.lineWidth = 8 * scale;
+  
+  // Left limb
+  ctx.beginPath();
+  ctx.arc(0, 0, size, Math.PI * 0.7, Math.PI * 1.3, false);
   ctx.stroke();
   
-  // String
+  // Right limb  
   ctx.beginPath();
-  ctx.moveTo(-size * 0.7, -size * 0.7);
-  ctx.lineTo(-size * 0.7, size * 0.7);
+  ctx.arc(0, 0, size, Math.PI * 1.7, Math.PI * 0.3, false);
+  ctx.stroke();
+  
+  // Bow grip (center handle)
+  ctx.fillStyle = weaponColor;
+  ctx.fillRect(-8 * scale, -20 * scale, 16 * scale, 40 * scale);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 2 * scale;
+  ctx.strokeRect(-8 * scale, -20 * scale, 16 * scale, 40 * scale);
+  
+  // Bow string - connect the tips properly
+  const topTipX = Math.cos(Math.PI * 0.7) * size;
+  const topTipY = Math.sin(Math.PI * 0.7) * size;
+  const bottomTipX = Math.cos(Math.PI * 1.3) * size;
+  const bottomTipY = Math.sin(Math.PI * 1.3) * size;
+  
+  ctx.beginPath();
+  ctx.moveTo(topTipX, topTipY);
+  ctx.lineTo(bottomTipX, bottomTipY);
   ctx.lineWidth = 2 * scale;
   ctx.strokeStyle = '#DDDDDD';
   ctx.stroke();
   
-  // Arrow nock point
+  // Arrow nock point (center of string)
   ctx.fillStyle = '#8B4513';
   ctx.beginPath();
-  ctx.arc(-size * 0.7, 0, 4 * scale, 0, Math.PI * 2);
+  const nockX = (topTipX + bottomTipX) / 2;
+  const nockY = (topTipY + bottomTipY) / 2;
+  ctx.arc(nockX, nockY, 4 * scale, 0, Math.PI * 2);
   ctx.fill();
   
   ctx.restore();
 }
 
 /**
- * Draw axe shape
+ * Draw axe shape - COMPLETELY REDESIGNED
  */
-function drawAxe(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, tier: number) {
-  const handleLength = 100 * scale * (1 + tier * 0.1);
-  const bladeWidth = 60 * scale;
+function drawAxe(ctx: CanvasRenderingContext2D, x: number, y: number, scale: number, tier: number, weaponColor: string) {
+  const handleLength = 120 * scale * (1 + tier * 0.1);
+  const handleWidth = 12 * scale;
+  const bladeWidth = 80 * scale * (1 + tier * 0.05);
+  const bladeHeight = 50 * scale * (1 + tier * 0.05);
   
   ctx.save();
   ctx.translate(x, y);
   
-  // Handle
+  // Handle (longer and more prominent)
   ctx.fillStyle = '#8B4513';
-  ctx.fillRect(-5 * scale, -handleLength/2, 10 * scale, handleLength);
-  ctx.strokeRect(-5 * scale, -handleLength/2, 10 * scale, handleLength);
+  ctx.fillRect(-handleWidth/2, -handleLength/2, handleWidth, handleLength);
+  ctx.strokeStyle = '#654321';
+  ctx.lineWidth = 2 * scale;
+  ctx.strokeRect(-handleWidth/2, -handleLength/2, handleWidth, handleLength);
   
-  // Blade
-  ctx.fillStyle = ctx.fillStyle; // Use weapon color
+  // Handle grip details
+  for (let i = 0; i < 3; i++) {
+    const gripY = -handleLength/2 + handleLength * 0.6 + i * 15 * scale;
+    ctx.strokeStyle = '#4A4A4A';
+    ctx.lineWidth = 1 * scale;
+    ctx.beginPath();
+    ctx.moveTo(-handleWidth/2, gripY);
+    ctx.lineTo(handleWidth/2, gripY);
+    ctx.stroke();
+  }
+  
+  // Axe head mounting (where blade connects to handle)
+  ctx.fillStyle = '#4A4A4A';
+  ctx.fillRect(-handleWidth * 0.8, -handleLength/2 + handleLength * 0.3, handleWidth * 1.6, 20 * scale);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 2 * scale;
+  ctx.strokeRect(-handleWidth * 0.8, -handleLength/2 + handleLength * 0.3, handleWidth * 1.6, 20 * scale);
+  
+  // Main axe blade (proper axe shape)
+  ctx.fillStyle = weaponColor;
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = 2 * scale;
+  
+  const bladeTop = -handleLength/2 + handleLength * 0.25;
+  const bladeBottom = -handleLength/2 + handleLength * 0.45;
+  const bladeCenter = (bladeTop + bladeBottom) / 2;
+  
+  // Create classic axe blade shape
   ctx.beginPath();
-  ctx.moveTo(5 * scale, -handleLength/4);
-  ctx.lineTo(bladeWidth, -handleLength/6);
-  ctx.lineTo(bladeWidth, handleLength/6);
-  ctx.lineTo(5 * scale, handleLength/4);
+  // Start from handle connection point
+  ctx.moveTo(handleWidth/2, bladeTop);
+  // Curve out to the blade edge
+  ctx.quadraticCurveTo(bladeWidth * 0.6, bladeTop - 5 * scale, bladeWidth, bladeCenter);
+  // Curve back to bottom connection
+  ctx.quadraticCurveTo(bladeWidth * 0.6, bladeBottom + 5 * scale, handleWidth/2, bladeBottom);
+  // Connect back along handle
+  ctx.lineTo(handleWidth/2, bladeTop);
   ctx.closePath();
   ctx.fill();
+  ctx.stroke();
+  
+  // Back spike (optional, for higher tiers)
+  if (tier >= 5) {
+    ctx.beginPath();
+    ctx.moveTo(-handleWidth/2, bladeCenter);
+    ctx.lineTo(-bladeWidth * 0.4, bladeCenter - 10 * scale);
+    ctx.lineTo(-bladeWidth * 0.4, bladeCenter + 10 * scale);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  
+  // Blade edge highlight
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 1 * scale;
+  ctx.beginPath();
+  ctx.moveTo(bladeWidth * 0.8, bladeCenter - bladeHeight * 0.3);
+  ctx.quadraticCurveTo(bladeWidth * 0.95, bladeCenter, bladeWidth * 0.8, bladeCenter + bladeHeight * 0.3);
   ctx.stroke();
   
   ctx.restore();

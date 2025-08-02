@@ -1,23 +1,13 @@
 'use client';
 
 import { useGame } from '@/contexts/GameContext';
-import { useBlacksmith } from '@/hooks/useBlacksmith';
 import { User, Star, Sword, Target, Zap, Crown, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function PlayerStats() {
   const { state } = useGame();
-  const { registerPlayer, isPending } = useBlacksmith();
-
-  const handleRegister = async () => {
-    try {
-      await registerPlayer();
-    } catch (error) {
-      console.error('Registration failed:', error);
-    }
-  };
-
-  if (!state.player?.isRegistered) {
+  // Show welcome message for new players (level 0)
+  if (!state.player || state.player.level === 0) {
     return (
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
@@ -31,26 +21,16 @@ export function PlayerStats() {
           >
             <User className="h-16 w-16 text-amber-500 mx-auto mb-4" />
           </motion.div>
-          <h3 className="text-xl font-semibold text-white mb-2">Join the Guild</h3>
+          <h3 className="text-xl font-semibold text-white mb-2">Welcome, Blacksmith!</h3>
           <p className="text-gray-400 text-sm mb-6">
-            Register as a blacksmith to start forging legendary weapons
+            Start forging your first weapon to automatically join the guild and begin your journey.
           </p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleRegister}
-            disabled={isPending}
-            className="btn-primary w-full"
-          >
-            {isPending ? (
-              <div className="flex items-center justify-center">
-                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                Registering...
-              </div>
-            ) : (
-              'Register as Blacksmith'
-            )}
-          </motion.button>
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+            <div className="text-xs text-amber-400 font-medium mb-1">Getting Started</div>
+            <div className="text-sm text-gray-300">
+              Choose a weapon type and tier to forge your first legendary item!
+            </div>
+          </div>
         </div>
       </motion.div>
     );

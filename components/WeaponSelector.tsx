@@ -38,7 +38,14 @@ export function WeaponSelector() {
 
   const canAccessTier = (tier: number): boolean => {
     const requiredLevel = (tier - 1) * 10 + 1;
-    return (state.player?.level || 0) >= requiredLevel;
+    const playerLevel = state.player?.level || 0;
+    
+    // Allow tier 1 for new/unregistered players since contract will auto-register them
+    if (tier === 1 && (playerLevel === 0 || !state.player?.isRegistered)) {
+      return true;
+    }
+    
+    return playerLevel >= requiredLevel;
   };
 
   // Get weapon types as an array of WeaponType enum values
@@ -142,9 +149,14 @@ export function WeaponSelector() {
                     </div>
                     <div className="text-sm text-gray-400 mb-3">
                       Requires Level {weapon.requiredLevel}
-                      {!canAccess && (
+                      {!canAccess && weapon.requiredLevel > 1 && (
                         <span className="text-red-400 ml-2">
                           (Need {weapon.requiredLevel - (state.player?.level || 0)} more levels)
+                        </span>
+                      )}
+                      {weapon.requiredLevel === 1 && (state.player?.level || 0) === 0 && (
+                        <span className="text-green-400 ml-2">
+                          (Available - will auto-register)
                         </span>
                       )}
                     </div>

@@ -1,6 +1,9 @@
 // src/app/collection/page.tsx
 'use client';
 
+// Disable static generation for this page
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { Header } from '@/components/Header';
@@ -10,14 +13,14 @@ import { CollectionStats } from '@/components/CollectionStats';
 import { BLACKSMITH_CONTRACT_ADDRESS, BLACKSMITH_ABI } from '@/lib/contracts';
 import { WeaponType, Rarity, type Weapon } from '@/types/game';
 import { type FilterState } from '@/types/collection';
+import { useMultipleWeaponsData } from '@/hooks/useWeaponData';
 import { motion } from 'framer-motion';
 import { Search, Filter, Grid, List } from 'lucide-react';
 
 export default function CollectionPage() {
+  const [mounted, setMounted] = useState(false);
   const { address, isConnected } = useAccount();
-  const [weapons, setWeapons] = useState<Weapon[]>([]);
-  const [filteredWeapons, setFilteredWeapons] = useState<Weapon[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [filteredWeapons, setFilteredWeapons] = useState<(Weapon & { imageUrl?: string; metadata?: any })[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filters, setFilters] = useState<FilterState>({
@@ -27,7 +30,7 @@ export default function CollectionPage() {
     sortBy: 'newest'
   });
 
-  // Fetch player's weapons
+  // Fetch player's weapon IDs
   const { data: weaponIds } = useReadContract({
     address: BLACKSMITH_CONTRACT_ADDRESS,
     abi: BLACKSMITH_ABI,
@@ -38,42 +41,24 @@ export default function CollectionPage() {
     }
   });
 
-  // Mock data for demonstration - replace with actual contract calls
+  // Fetch actual weapon data with metadata
+  const { weapons, isLoading, error, failedCount } = useMultipleWeaponsData(weaponIds || []);
+
   useEffect(() => {
-    const fetchWeapons = async () => {
-      if (!weaponIds || weaponIds.length === 0) {
-        setWeapons([]);
-        setFilteredWeapons([]);
-        return;
-      }
+    setMounted(true);
+  }, []);
 
-      setIsLoading(true);
-      try {
-        // In a real implementation, you'd fetch each weapon's details from the contract
-        // For now, we'll use mock data
-        const mockWeapons: Weapon[] = weaponIds.map((id, index) => ({
-          tokenId: id.toString(),
-          weaponType: (index % 3) as WeaponType,
-          tier: Math.min(Math.floor(index / 3) + 1, 10),
-          rarity: (index % 5) as Rarity,
-          damage: 30 + index * 5,
-          durability: 50 + index * 3,
-          speed: 40 + index * 2,
-          craftedAt: Date.now() - index * 86400000,
-          craftedBy: address!,
-          ipfsHash: `QmMock${index}`,
-        }));
-        
-        setWeapons(mockWeapons);
-      } catch (error) {
-        console.error('Failed to fetch weapons:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchWeapons();
-  }, [weaponIds, address]);
+  // Don't render wagmi-dependent content until mounted
+  if (!mounted) {
+    return (
+      <main className="min-h-screen">
+        <Header />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto"></div>
+        </div>
+      </main>
+    );
+  }
 
   // Apply filters and search
   useEffect(() => {
@@ -217,6 +202,8 @@ export default function CollectionPage() {
             weapons={filteredWeapons} 
             isLoading={isLoading}
             viewMode={viewMode}
+            error={error}
+            failedCount={failedCount}
           />
         </motion.div>
       </div>

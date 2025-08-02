@@ -1,17 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { useBlacksmith } from '@/hooks/useBlacksmith';
 import { WEAPON_DEFINITIONS } from '@/lib/weapons';
 import { WeaponType } from '@/types/game';
-import { Hammer, Flame, Sparkles, AlertCircle, Trophy, Coins, Zap } from 'lucide-react';
+import { Hammer, Flame, Sparkles, Trophy, Coins, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function ForgeInterface() {
   const { state } = useGame();
-  const { forgeWeapon, isPending, isConfirming, isSuccess } = useBlacksmith();
+  const { forgeWeapon, isPending, isConfirming, isSuccess, mintingFee, gasEstimate, isProcessing, statusMessage } = useBlacksmith();
   const [forgingStep, setForgingStep] = useState(0);
+
 
   const selectedWeapon = state.selectedWeaponType !== null && state.selectedTier !== null
     ? WEAPON_DEFINITIONS[state.selectedWeaponType as WeaponType][state.selectedTier - 1]
@@ -23,12 +24,12 @@ export function ForgeInterface() {
     try {
       setForgingStep(1); // "Generating artwork..."
       
-      // The image generation is now handled inside the useBlacksmith hook
       await forgeWeapon(state.selectedWeaponType as WeaponType, state.selectedTier);
       
       setForgingStep(4); // "Weapon forged successfully!"
-    } catch (error) {
+    } catch (error: any) {
       console.error('Forging failed:', error);
+      alert(`Forge failed: ${error?.shortMessage || error?.message || 'Unknown error'}`);
       setForgingStep(0);
     }
   };
@@ -41,7 +42,7 @@ export function ForgeInterface() {
     'Weapon forged successfully!'
   ];
 
-  const isForging = isPending || isConfirming;
+  const isForging = isPending || isConfirming || isProcessing;
 
   return (
     <div className="space-y-6">
@@ -117,7 +118,9 @@ export function ForgeInterface() {
                     <Coins className="h-4 w-4 mr-2 text-green-400" />
                     Minting Fee
                   </span>
-                  <span className="text-white font-medium">0.001 AVAX</span>
+                  <span className="text-white font-medium">
+                    {mintingFee ? `${(Number(mintingFee) / 1e18).toFixed(6)} AVAX` : '0.000001 AVAX'}
+                  </span>
                 </div>
                 
                 <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
@@ -125,16 +128,16 @@ export function ForgeInterface() {
                     <Trophy className="h-4 w-4 mr-2 text-blue-400" />
                     Experience Gained
                   </span>
-                  <span className="text-green-400 font-medium">+100 XP</span>
+                  <span className="text-green-400 font-medium">+1000 XP</span>
                 </div>
                 
                 <div className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
                   <span className="text-gray-400 flex items-center">
                     <Zap className="h-4 w-4 mr-2 text-yellow-400" />
-                    Required Level
+                    Gas Estimate
                   </span>
                   <span className="text-white font-medium">
-                    Level {selectedWeapon.requiredLevel}
+                    {gasEstimate ? Number(gasEstimate).toLocaleString() : 'Calculating...'}
                   </span>
                 </div>
               </div>
@@ -196,9 +199,12 @@ export function ForgeInterface() {
             </div>
             
             <div className="mt-3 text-sm text-gray-400 text-center">
-              {isPending && "Confirm transaction in your wallet..."}
-              {isConfirming && "Waiting for blockchain confirmation..."}
-              {isSuccess && "🎉 Weapon successfully forged!"}
+              {statusMessage || (
+                isPending ? "Confirm transaction in your wallet..." :
+                isConfirming ? "Waiting for blockchain confirmation..." :
+                isSuccess ? "🎉 Weapon successfully forged!" :
+                "Ready to forge..."
+              )}
             </div>
           </motion.div>
         )}
@@ -210,7 +216,7 @@ export function ForgeInterface() {
           whileHover={selectedWeapon && !isForging ? { scale: 1.02 } : {}}
           whileTap={selectedWeapon && !isForging ? { scale: 0.98 } : {}}
           onClick={handleForge}
-          disabled={!selectedWeapon || isForging || !state.player?.isRegistered}
+          disabled={!selectedWeapon || isForging || isProcessing}
           className="btn-primary w-full py-4 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
         >
           {isForging ? (
@@ -233,25 +239,14 @@ export function ForgeInterface() {
         </motion.button>
         
         {/* Warning Messages */}
-        {!state.player?.isRegistered && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-center text-amber-400 text-sm bg-amber-500/10 border border-amber-500/30 rounded-lg p-3"
-          >
-            <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-            You must register as a blacksmith first
-          </motion.div>
-        )}
-        
-        {state.player?.isRegistered && !selectedWeapon && (
+        {!selectedWeapon && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="flex items-center text-blue-400 text-sm bg-blue-500/10 border border-blue-500/30 rounded-lg p-3"
           >
             <Sparkles className="h-4 w-4 mr-2 flex-shrink-0" />
-            Select a weapon type and tier to begin
+            Select a weapon type and tier to begin forging
           </motion.div>
         )}
       </div>

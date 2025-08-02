@@ -1,5 +1,5 @@
-import React from 'react';
-import { useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
+import React, { useState, useRef } from 'react';
+import { useWriteContract, useWaitForTransactionReceipt, useAccount, useReadContract, usePublicClient } from 'wagmi';
 import { BLACKSMITH_CONTRACT_ADDRESS, BLACKSMITH_ABI } from '@/lib/contracts';
 import { parseEther } from 'viem';
 import { WeaponType } from '@/types/game';
@@ -9,12 +9,21 @@ import { WEAPON_DEFINITIONS } from '@/lib/weapons';
 
 export function useBlacksmith() {
   const { refetchPlayer } = useGame();
-  const { address } = useAccount(); // Get wallet address
+  const { address } = useAccount();
+  const publicClient = usePublicClient();
+  
+  // Transaction queue management
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [transactionStatus, setTransactionStatus] = useState<'idle' | 'preparing' | 'submitted' | 'confirming' | 'success' | 'error'>('idle');
+  const [statusMessage, setStatusMessage] = useState<string>('');
+  const lastTransactionTime = useRef<number>(0);
+  
   const { 
     writeContract, 
     data: hash, 
     isPending: isWritePending,
-    error: writeError 
+    error: writeError,
+    reset: resetWrite
   } = useWriteContract();
   
   const { 
@@ -25,39 +34,67 @@ export function useBlacksmith() {
     hash,
   });
 
-  const registerPlayer = async () => {
-    try {
-      console.log('Registering player...');
-      const result = await writeContract({
-        address: BLACKSMITH_CONTRACT_ADDRESS,
-        abi: BLACKSMITH_ABI,
-        functionName: 'registerPlayer',
-      });
-      console.log('Registration transaction sent:', result);
-      return result;
-    } catch (error: any) {
-      console.error('Registration failed:', error);
-      
-      // Parse common error messages
-      if (error?.message?.includes('ALREADY_REGISTERED')) {
-        throw new Error('You are already registered as a blacksmith!');
-      } else if (error?.message?.includes('User rejected')) {
-        throw new Error('Transaction was rejected by user');
-      } else if (error?.message?.includes('insufficient funds')) {
-        throw new Error('Insufficient funds for gas fees');
-      }
-      
-      throw new Error(error?.message || 'Registration failed');
+  // Get minting fee from contract
+  const { data: mintingFee } = useReadContract({
+    address: BLACKSMITH_CONTRACT_ADDRESS,
+    abi: BLACKSMITH_ABI,
+    functionName: 'MINTING_FEE',
+  });
+
+  // Get gas estimate for forging
+  const { data: gasEstimate } = useReadContract({
+    address: BLACKSMITH_CONTRACT_ADDRESS,
+    abi: BLACKSMITH_ABI,
+    functionName: 'estimateForgeGas',
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address,
     }
-  };
+  });
+
 
   const forgeWeapon = async (
     weaponType: WeaponType,
     tier: number,
     customImage?: File
   ) => {
+    // Prevent rapid-fire transactions
+    const now = Date.now();
+    if (now - lastTransactionTime.current < 3000) { // 3 second cooldown
+      throw new Error('Please wait 3 seconds between transactions to prevent nonce conflicts');
+    }
+    
+    // Prevent multiple simultaneous transactions
+    if (isProcessing || isWritePending || isConfirming) {
+      throw new Error('Transaction already in progress. Please wait for completion.');
+    }
+    
     try {
+      setIsProcessing(true);
+      setTransactionStatus('preparing');
+      setStatusMessage('Preparing transaction...');
+      resetWrite(); // Clear any previous transaction state
+      lastTransactionTime.current = now;
+      
       console.log('Starting weapon forge process...', { weaponType, tier });
+      
+      if (!address) {
+        throw new Error('Wallet not connected');
+      }
+      
+      console.log('Starting forge for address:', address);
+      
+      // Get current nonce with pending transactions
+      if (!publicClient) {
+        throw new Error('Public client not available');
+      }
+      
+      setStatusMessage('Checking transaction queue...');
+      const nonce = await publicClient.getTransactionCount({
+        address: address,
+        blockTag: 'pending'
+      });
+      console.log('Current nonce (including pending):', nonce);
       
       // Validate inputs before processing
       if (weaponType < 0 || weaponType > 2) {
@@ -66,6 +103,7 @@ export function useBlacksmith() {
       if (tier < 1 || tier > 10) {
         throw new Error('Invalid weapon tier');
       }
+
 
       // Get weapon definition for metadata
       const weaponDef = WEAPON_DEFINITIONS[weaponType][tier - 1];
@@ -157,38 +195,65 @@ export function useBlacksmith() {
         metadataIpfsHash = `fallback_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       }
 
+      setStatusMessage('Submitting transaction...');
+      setTransactionStatus('submitted');
+      
       console.log('Sending forge transaction...');
+      console.log('Using minting fee:', mintingFee?.toString());
+      console.log('Using gas estimate:', gasEstimate?.toString());
+      console.log('Using nonce:', nonce);
+      
+      // Calculate gas limit with 50% buffer for better reliability
+      const gasLimit = gasEstimate ? BigInt(Math.floor(Number(gasEstimate) * 1.5)) : undefined;
       
       const result = await writeContract({
         address: BLACKSMITH_CONTRACT_ADDRESS,
         abi: BLACKSMITH_ABI,
         functionName: 'forgeWeapon',
         args: [weaponType, tier, metadataIpfsHash],
-        value: parseEther('0.001'),
+        value: mintingFee || parseEther('0.000001'), // Use contract fee or fallback
+        gas: gasLimit,
+        nonce: nonce, // Explicitly set nonce
       });
+      
+      setStatusMessage('Transaction submitted! Waiting for confirmation...');
+      setTransactionStatus('confirming');
       
       console.log('Forge transaction sent:', result);
       return { hash: result, ipfsHash: metadataIpfsHash, metadata, imageIpfsHash };
       
     } catch (error: any) {
       console.error('Forging failed:', error);
+      setTransactionStatus('error');
       
       // Parse common error messages
-      if (error?.message?.includes('INSUFFICIENT_FEE')) {
-        throw new Error('Insufficient AVAX sent (need 0.001 AVAX)');
-      } else if (error?.message?.includes('NOT_REGISTERED')) {
-        throw new Error('You must register as a blacksmith first');
-      } else if (error?.message?.includes('LEVEL_TOO_LOW')) {
-        throw new Error('Your level is too low for this weapon tier');
-      } else if (error?.message?.includes('INVALID_TIER')) {
-        throw new Error('Invalid weapon tier selected');
-      } else if (error?.message?.includes('USER_REJECTED')) {
-        throw new Error('Transaction was rejected by user');
+      let errorMessage = '';
+      if (error?.message?.includes('INSUFFICIENT_FEE') || error?.message?.includes('Insufficient minting fee')) {
+        const feeInEther = mintingFee ? (Number(mintingFee) / 1e18).toFixed(6) : '0.000001';
+        errorMessage = `Insufficient AVAX sent (need ${feeInEther} AVAX)`;
+      } else if (error?.message?.includes('LEVEL_TOO_LOW') || error?.message?.includes('Player level too low')) {
+        errorMessage = 'Your level is too low for this weapon tier';
+      } else if (error?.message?.includes('INVALID_TIER') || error?.message?.includes('Invalid weapon tier')) {
+        errorMessage = 'Invalid weapon tier selected';
+      } else if (error?.message?.includes('USER_REJECTED') || error?.message?.includes('rejected')) {
+        errorMessage = 'Transaction was rejected by user';
       } else if (error?.message?.includes('insufficient funds')) {
-        throw new Error('Insufficient AVAX balance');
+        errorMessage = 'Insufficient AVAX balance';
+      } else if (error?.message?.includes('nonce')) {
+        errorMessage = 'Transaction nonce conflict. Please try again in a few seconds.';
+      } else if (error?.message?.includes('replacement')) {
+        errorMessage = 'Transaction was replaced. This usually means it was submitted too quickly.';
+      } else if (error?.message?.includes('already in progress')) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = error?.shortMessage || error?.message || 'Forging failed';
       }
       
-      throw new Error(error?.shortMessage || error?.message || 'Forging failed');
+      setStatusMessage(`Error: ${errorMessage}`);
+      throw new Error(errorMessage);
+    } finally {
+      // Always cleanup processing state
+      setIsProcessing(false);
     }
   };
 
@@ -213,12 +278,16 @@ export function useBlacksmith() {
   }, [writeError, receiptError]);
 
   return {
-    registerPlayer,
     forgeWeapon,
     isPending: isWritePending,
     isConfirming,
     isSuccess,
     hash,
     error: writeError || receiptError,
+    mintingFee,
+    gasEstimate,
+    isProcessing,
+    transactionStatus,
+    statusMessage,
   };
 }

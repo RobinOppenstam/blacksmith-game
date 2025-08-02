@@ -1,13 +1,11 @@
 'use client';
 
-import { useGame } from '@/contexts/GameContext';
 import { WeaponSelector } from './WeaponSelector';
 import { ForgeInterface } from './ForgeInterface';
-import { Flame, Hammer, Sparkles } from 'lucide-react';
+import { Flame, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export function Forge() {
-  const { state } = useGame();
 
   return (
     <div className="space-y-6">
@@ -58,27 +56,10 @@ export function Forge() {
           </motion.div>
         </div>
 
-        {!state.player?.isRegistered ? (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-16"
-          >
-            <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <Hammer className="h-20 w-20 text-gray-600 mx-auto mb-6" />
-            </motion.div>
-            <h3 className="text-xl text-gray-400 mb-2">Forge Access Denied</h3>
-            <p className="text-gray-500">Register as a blacksmith to access the forge</p>
-          </motion.div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <WeaponSelector />
-            <ForgeInterface />
-          </div>
-        )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <WeaponSelector />
+          <ForgeInterface />
+        </div>
       </motion.div>
     </div>
   );
